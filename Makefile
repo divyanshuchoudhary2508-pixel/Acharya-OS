@@ -9,9 +9,10 @@
 
 # --- Toolchain ---------------------------------------------------------
 AS       := nasm                     # not actually used yet (we use GNU as via gcc for .S), kept for future NASM modules
-CC       := gcc
-LD       := ld
+CC       := x86_64-elf-gcc
+LD       := x86_64-elf-ld
 GRUB_MKRESCUE := grub-mkrescue
+TOOLCHAIN_OK := $(BUILD_DIR)/.toolchain-ok
 
 # --- Directories --------------------------------------------------------
 BOOT_DIR    := boot/arch/x86_64
@@ -108,12 +109,30 @@ ISO_FILE    := $(BUILD_DIR)/acharyaos.iso
 
 # --- Top-level targets --------------------------------------------------------
 
-.PHONY: all clean run run-serial iso
+.PHONY: all clean run run-serial iso preflight
 
-all: $(KERNEL_BIN)
+all: preflight $(KERNEL_BIN)
+
+preflight: $(TOOLCHAIN_OK)
+
+$(TOOLCHAIN_OK): | $(BUILD_DIR)
+	@set -e; \
+	missing=""; \
+	for tool in $(CC) $(LD); do \
+		if ! command -v $$tool >/dev/null 2>&1; then \
+			missing="$$missing $$tool"; \
+		fi; \
+	done; \
+	if [ -n "$$missing" ]; then \
+		echo "Missing build tools:$$missing"; \
+		echo "Install an x86_64-elf cross-toolchain and make sure it is on PATH."; \
+		echo "Required commands: $(CC), $(LD), grub-mkrescue, qemu-system-x86_64"; \
+		exit 1; \
+	fi; \
+	touch $@
 
 # Build the raw kernel binary (boot.S + all kernel/ sources linked together).
-$(KERNEL_BIN): $(ALL_OBJS) $(BOOT_DIR)/linker.ld
+$(KERNEL_BIN): $(ALL_OBJS) $(BOOT_DIR)/linker.ld | preflight
 	$(LD) $(LDFLAGS) -o $@ $(ALL_OBJS)
 	@echo "Built kernel binary: $@"
 
