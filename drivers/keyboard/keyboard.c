@@ -7,6 +7,7 @@
  */
 
 #include "keyboard.h"
+#include "kio.h"
 #include "idt.h"
 #include "pic.h"
 #include "port_io.h"
@@ -61,6 +62,7 @@ static void keyboard_interrupt_handler(interrupt_frame_t *frame) {
         char c = shift_down ? scancode_ascii_shift[key] : scancode_ascii[key];
         if (c != 0) {
             keyboard_buffer_push(c);
+            kprintf("[kbd]%c", c);
         }
     }
 

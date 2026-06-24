@@ -25,13 +25,23 @@ The shell is intentionally layered above the keyboard driver:
 - `drivers/keyboard/keyboard.c` knows scancodes, IRQ1, and port `0x60`.
 - `kernel/shell/shell.c` knows prompts, editable lines, and commands.
 
-The current command set is deliberately small:
+The current shell already includes a wider built-in command set used by the
+later Phase 1 subsystems. The important command groups are:
 
-- `help`
-- `clear`
-- `echo <text>`
-- `version`
-- `halt`
+- core shell commands: `help`, `clear`, `echo`, `history`, `clearhist`
+- execution helpers: `!!`, `!n`
+- system status: `mem`, `vmem`, `ticks`, `sched`, `ps`, `taskmgr`
+- process and syscall demos: `spawn`, `syscall`, `userdemo`
+- disk and filesystem: `disk`, `disktest`, `fs`, `ls`, `cat`, `writefs`,
+  `rmfs`
+- applications: `edit`, `calc`, `browse`
+- configuration and services: `config`, `pkg`, `pkginfo`, `install`,
+  `remove`, `svc`, `svcinfo`, `start`, `stop`, `restart`, `enable`,
+  `disable`
+- user management: `users`, `whoami`, `su`, `adduser`, `deluser`,
+  `login`, `logout`, `passwd`, `auth`
+- diagnostics: `log`, `loglevel`
+- exit and control: `version`, `halt`
 
 ## Files
 
@@ -68,6 +78,8 @@ Then type:
 
 ```text
 help
+history
+clearhist
 version
 echo hello acharya
 clear

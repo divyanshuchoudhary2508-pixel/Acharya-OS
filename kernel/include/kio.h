@@ -37,6 +37,14 @@ void kio_set_color(vga_color_t foreground, vga_color_t background);
 void kputs(const char *str);
 
 /*
+ * kio_getchar: optional serial-console input path. Returns the next
+ * received byte from COM1 if one is available, or -1 if there is no
+ * pending input. This is deliberately tiny and polling-based so early boot
+ * code can use it without needing another interrupt-driven driver yet.
+ */
+int kio_getchar(void);
+
+/*
  * kprintf: minimal formatted output. Supported specifiers:
  *   %s  - null-terminated string
  *   %d  - signed decimal integer (32-bit)

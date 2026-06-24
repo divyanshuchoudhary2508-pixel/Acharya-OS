@@ -11,14 +11,15 @@
 AS       := nasm                     # not actually used yet (we use GNU as via gcc for .S), kept for future NASM modules
 CC       := x86_64-elf-gcc
 LD       := x86_64-elf-ld
-GRUB_MKRESCUE := grub-mkrescue
-TOOLCHAIN_OK := $(BUILD_DIR)/.toolchain-ok
+XORRISO := D:/mysys64/usr/bin/xorriso.exe
+GRUB_MKIMAGE := D:/toolchains/grub/grub-mkimage.exe
 
 # --- Directories --------------------------------------------------------
 BOOT_DIR    := boot/arch/x86_64
 KERNEL_DIR  := kernel
 BUILD_DIR   := build
 ISO_DIR     := $(BUILD_DIR)/iso
+TOOLCHAIN_OK := $(BUILD_DIR)/.toolchain-ok
 
 # SRC_DIRS: every top-level folder whose .c/.S files get compiled into the
 # final kernel binary. Phase 1, Feature 3 (Text Output) is the first
@@ -86,8 +87,14 @@ LDFLAGS := -n -T $(BOOT_DIR)/linker.ld -static
 #   a distinct, purpose-describing name instead (e.g. gdt.c + gdt_flush.S,
 #   NOT gdt.c + gdt.S).
 BOOT_SRC     := $(BOOT_DIR)/boot.S
-KERNEL_C_SRCS := $(shell find $(SRC_DIRS) -name '*.c')
-KERNEL_S_SRCS := $(shell find $(SRC_DIRS) -name '*.S')
+
+# Recursive wildcard helper: walks every directory under each top-level
+# source tree and returns files matching the pattern. This keeps source
+# discovery portable on Windows and Unix shells alike.
+rwildcard = $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2)$(filter $(subst *,%,$2),$d))
+
+KERNEL_C_SRCS := $(call rwildcard,$(addsuffix /,$(SRC_DIRS)),*.c)
+KERNEL_S_SRCS := $(call rwildcard,$(addsuffix /,$(SRC_DIRS)),*.S)
 
 BOOT_OBJ     := $(BUILD_DIR)/boot.o
 # Object files are placed at build/<original/path/from/repo/root>.o - e.g.
@@ -116,20 +123,12 @@ all: preflight $(KERNEL_BIN)
 preflight: $(TOOLCHAIN_OK)
 
 $(TOOLCHAIN_OK): | $(BUILD_DIR)
-	@set -e; \
-	missing=""; \
-	for tool in $(CC) $(LD); do \
-		if ! command -v $$tool >/dev/null 2>&1; then \
-			missing="$$missing $$tool"; \
-		fi; \
-	done; \
-	if [ -n "$$missing" ]; then \
-		echo "Missing build tools:$$missing"; \
-		echo "Install an x86_64-elf cross-toolchain and make sure it is on PATH."; \
-		echo "Required commands: $(CC), $(LD), grub-mkrescue, qemu-system-x86_64"; \
-		exit 1; \
-	fi; \
-	touch $@
+	@where $(CC) >nul 2>nul || (echo Missing build tool: $(CC) && exit /b 1)
+	@where $(LD) >nul 2>nul || (echo Missing build tool: $(LD) && exit /b 1)
+	@where $(XORRISO) >nul 2>nul || (echo Missing boot tool: $(XORRISO) && exit /b 1)
+	@if not exist "$(GRUB_MKIMAGE)" (echo Missing boot tool: $(GRUB_MKIMAGE) && exit /b 1)
+	@where qemu-system-x86_64 >nul 2>nul || (echo Missing test tool: qemu-system-x86_64 && exit /b 1)
+	@echo Toolchain check passed> $@
 
 # Build the raw kernel binary (boot.S + all kernel/ sources linked together).
 $(KERNEL_BIN): $(ALL_OBJS) $(BOOT_DIR)/linker.ld | preflight
@@ -143,37 +142,41 @@ $(BUILD_DIR)/boot.o: $(BOOT_SRC) | $(BUILD_DIR)
 # for .S. $(dir $@) handles subdirectories (e.g. drivers/vga/vga.c needs
 # build/drivers/vga/ to exist before the compiler can write its .o there).
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
+	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(dir $@)' | Out-Null"
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.o: %.S | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
+	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(dir $@)' | Out-Null"
 	$(CC) $(CFLAGS) $(ASFLAGS) -c $< -o $@
 
 $(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
+	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(BUILD_DIR)' | Out-Null"
 
 # Build a bootable ISO image using GRUB. This is what real hardware (or
 # QEMU acting as real hardware) actually boots from - GRUB is embedded
 # into the ISO's boot sector, reads grub.cfg, and loads our kernel binary
 # per the Multiboot2 protocol.
 iso: $(KERNEL_BIN)
-	mkdir -p $(ISO_DIR)/boot/grub
-	cp $(KERNEL_BIN) $(ISO_DIR)/boot/acharyaos.bin
-	cp tools/grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
-	$(GRUB_MKRESCUE) -o $(ISO_FILE) $(ISO_DIR) 2>&1 | tail -5
+	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(ISO_DIR)/boot/grub' | Out-Null"
+	@powershell -NoProfile -Command "Copy-Item -Force '$(KERNEL_BIN)' '$(ISO_DIR)/boot/acharyaos.bin'"
+	"$(GRUB_MKIMAGE)" -O i386-pc-eltorito -p /boot/grub -c tools/grub.cfg --directory=D:/toolchains/grub/i386-pc -o $(ISO_DIR)/boot/grub/eltorito.img biosdisk iso9660 normal multiboot2 serial terminal terminfo
+	$(XORRISO) -as mkisofs -R -J -o $(ISO_FILE) -b boot/grub/eltorito.img -c boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table $(ISO_DIR)
 	@echo "Built bootable ISO: $(ISO_FILE)"
 
 # Run in QEMU with a graphical-style display captured to a file (for
 # environments without a real display) plus serial output to stdio.
 run: iso
 	qemu-system-x86_64 -cdrom $(ISO_FILE) -m 256M -display none \
-		-serial mon:stdio -no-reboot -no-shutdown
+		-serial none -chardev file,id=dbg,path=C:/tmp/acharyaos-debug.log,append=on \
+		-device isa-debugcon,iobase=0xe9,chardev=dbg \
+		-no-reboot -no-shutdown
 
 # Run in QEMU and dump the VGA text-mode screen contents to a file, then
 # exit - useful for headless verification in CI / containers with no GUI.
 run-headless-check: iso
 	qemu-system-x86_64 -cdrom $(ISO_FILE) -m 256M -display none \
+		-serial none -chardev file,id=dbg,path=C:/tmp/acharyaos-debug.log,append=on \
+		-device isa-debugcon,iobase=0xe9,chardev=dbg \
 		-no-reboot -monitor unix:$(BUILD_DIR)/qemu-mon.sock,server,nowait &
 	sleep 2
 	echo '{"execute":"qmp_capabilities"}{"execute":"human-monitor-command","arguments":{"command-line":"screendump $(BUILD_DIR)/screen.ppm"}}' | \
@@ -181,4 +184,4 @@ run-headless-check: iso
 	pkill -f "qemu-system-x86_64.*$(ISO_FILE)" || true
 
 clean:
-	rm -rf $(BUILD_DIR)
+	@powershell -NoProfile -Command "Remove-Item -Recurse -Force '$(BUILD_DIR)' -ErrorAction SilentlyContinue"

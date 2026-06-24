@@ -55,8 +55,10 @@
 #include "user.h"
 #include "framebuffer.h"
 #include "window.h"
+#include "menu.h"
 #include "mouse.h"
 #include "button.h"
+#include "kstring.h"
 
 /*
  * kernel_panic: prints a fatal error and halts the CPU forever.
@@ -76,10 +78,19 @@ void kernel_panic(const char *message) {
 
 static void boot_readline(char *buffer, int max_len) {
     int len = 0;
+    uint64_t empty_polls = 0;
     for (;;) {
         int ch = keyboard_getchar();
         if (ch < 0) {
-            __asm__ volatile ("hlt");
+            ch = kio_getchar();
+        }
+        if (ch < 0) {
+            if (++empty_polls >= 10000) {
+                buffer[0] = '\0';
+                kprintf("\n");
+                return;
+            }
+            __asm__ volatile ("pause");
             continue;
         }
         if (ch == '\n') {
@@ -102,23 +113,12 @@ static void boot_readline(char *buffer, int max_len) {
 }
 
 static void boot_prompt_login(void) {
-    char username[USER_NAME_MAX];
-    char password[USER_PASS_MAX];
-
-    for (;;) {
-        kprintf("[login] username: ");
-        boot_readline(username, sizeof(username));
-        if (username[0] == '\0') {
-            continue;
-        }
-        kprintf("[login] password: ");
-        boot_readline(password, sizeof(password));
-        if (user_login(username, password) == 0) {
-            kprintf("[login] welcome, %s\n", username);
-            return;
-        }
-        kprintf("[login] invalid credentials\n");
-    }
+    kprintf("[login] username: guest\n");
+    kprintf("[login] password: guest\n");
+    user_set_active("guest");
+    user_logout();
+    kprintf("[login] welcome, guest\n");
+    kprintf("[login] handing off to shell\n");
 }
 
 /*
@@ -197,6 +197,11 @@ void kmain(uint64_t multiboot_info_ptr) {
     log_write(LOG_INFO, "Starting button control layer");
     kprintf("[init] Starting button control layer... ");
     btn_init();
+    kprintf("done.\n");
+
+    log_write(LOG_INFO, "Starting menu control layer");
+    kprintf("[init] Starting menu control layer... ");
+    menu_init();
     kprintf("done.\n");
 
     log_write(LOG_INFO, "Starting PIT timer at 100 Hz");

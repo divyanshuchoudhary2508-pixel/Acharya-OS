@@ -32,6 +32,8 @@
    Until then, moving it would be structure for its own sake rather than
    solving a real coupling problem. */
 #define COM1_PORT 0x3F8
+#define COM1_LINE_STATUS_PORT (COM1_PORT + 5)
+#define COM1_RX_READY 0x01
 
 static void serial_init(void) {
     outb(COM1_PORT + 1, 0x00);
@@ -45,6 +47,13 @@ static void serial_init(void) {
 
 static void serial_putchar(char c) {
     outb(COM1_PORT, (uint8_t) c);
+}
+
+static int serial_getchar(void) {
+    if ((inb(COM1_LINE_STATUS_PORT) & COM1_RX_READY) == 0) {
+        return -1;
+    }
+    return (int) inb(COM1_PORT);
 }
 
 /* ---------------- Public API ---------------- */
@@ -68,6 +77,10 @@ void kputs(const char *str) {
         kputchar(*str);
         str++;
     }
+}
+
+int kio_getchar(void) {
+    return serial_getchar();
 }
 
 /* Print an unsigned integer in an arbitrary base (used for %d and %x).

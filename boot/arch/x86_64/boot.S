@@ -135,6 +135,25 @@ gdt64_pointer:
 .global _start
 .type _start, @function
 _start:
+    mov $0x3F8 + 1, %dx
+    xor %al, %al
+    out %al, %dx
+    mov $0x3F8 + 3, %dx
+    mov $0x80, %al
+    out %al, %dx
+    mov $0x3F8 + 0, %dx
+    mov $0x03, %al
+    out %al, %dx
+    mov $0x3F8 + 1, %dx
+    xor %al, %al
+    out %al, %dx
+    mov $0x3F8 + 3, %dx
+    mov $0x03, %al
+    out %al, %dx
+    movb $'S', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
     /*
      * GRUB has passed us two values per the Multiboot2 spec:
      *   EAX = magic number 0x36d76289 (proves a Multiboot2-compliant loader booted us)
@@ -146,6 +165,10 @@ _start:
 
     /* Set up our own stack immediately - never trust the stack GRUB left us. */
     mov $stack_top, %esp
+    movb $'s', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
 
     /* --------------------------------------------------------
      * STEP 1: Build the page tables (identity-map first 1 GiB)
@@ -186,12 +209,20 @@ fill_pd_table:
     mov %cr4, %eax
     or  $(1 << 5), %eax          /* CR4.PAE = bit 5 */
     mov %eax, %cr4
+    movb $'P', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
 
     /* --------------------------------------------------------
      * STEP 3: Load CR3 with our PML4 table's physical address
      * -------------------------------------------------------- */
     mov $pml4_table, %eax
     mov %eax, %cr3
+    movb $'3', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
 
     /* --------------------------------------------------------
      * STEP 4: Set the Long Mode Enable (LME) bit in the EFER MSR
@@ -200,6 +231,10 @@ fill_pd_table:
     rdmsr                        /* reads MSR[ecx] into edx:eax */
     or  $(1 << 8), %eax          /* EFER.LME = bit 8 */
     wrmsr
+    movb $'L', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
 
     /* --------------------------------------------------------
      * STEP 5: Enable paging (CR0.PG) - this "arms" long mode.
@@ -209,11 +244,19 @@ fill_pd_table:
     mov %cr0, %eax
     or  $(1 << 31), %eax         /* CR0.PG = bit 31 */
     mov %eax, %cr0
+    movb $'G', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
 
     /* --------------------------------------------------------
      * STEP 6: Load our 64-bit GDT
      * -------------------------------------------------------- */
     lgdt gdt64_pointer
+    movb $'D', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
 
     /* --------------------------------------------------------
      * STEP 7: Far jump into the 64-bit code segment.
@@ -228,6 +271,10 @@ fill_pd_table:
  * ============================================================ */
 .code64
 long_mode_entry:
+    movb $'6', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
     /* Reload data segment registers with our 64-bit data selector.
        In long mode these mostly don't matter semantically, but the CPU
        still wants valid selectors loaded - leaving stale 32-bit selectors
@@ -251,6 +298,10 @@ long_mode_entry:
     mov %edi, %edi    /* zero-extends edi into the full 64-bit rdi (documented x86_64 behavior) */
 
     /* Call into our C kernel. This call should never return. */
+    movb $'K', %al
+    outb %al, $0xE9
+    mov $0x3F8, %dx
+    out %al, %dx
     call kmain
 
     /*

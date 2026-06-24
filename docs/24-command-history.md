@@ -26,6 +26,10 @@ Supported interactions:
 - `!n` to repeat history entry `n`
 - `clearhist` to clear the buffer
 
+The implementation in `kernel/shell/shell.c` also avoids storing history
+commands back into the history buffer, so `history`, `clearhist`, and recall
+entries do not recursively pollute the ring.
+
 ## Folder structure
 
 ```text

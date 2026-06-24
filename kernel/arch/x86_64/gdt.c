@@ -21,6 +21,7 @@
 
 #include "gdt.h"
 #include "kernel.h"
+#include "kstring.h"
 
 /*
  * GDT entry format (8 bytes), per the x86_64 architecture manual.

@@ -31,6 +31,7 @@
 #include "user.h"
 #include "framebuffer.h"
 #include "window.h"
+#include "menu.h"
 #include "mouse.h"
 #include "button.h"
 
@@ -143,6 +144,9 @@ static void shell_readline(char *buffer, int max_len) {
     for (;;) {
         int ch = keyboard_getchar();
         if (ch < 0) {
+            ch = kio_getchar();
+        }
+        if (ch < 0) {
             __asm__ volatile ("hlt");
             continue;
         }
@@ -198,6 +202,8 @@ static void shell_cmd_help(void) {
     kprintf("  gfxdemo  Draw the framebuffer demo pattern\n");
     kprintf("  wminfo   Show window manager status\n");
     kprintf("  wmdemo   Draw the window manager demo layout\n");
+    kprintf("  meninfo  Show menu system status\n");
+    kprintf("  mendemo  Draw the menu demo layout\n");
     kprintf("  mouse    Show mouse driver status\n");
     kprintf("  btninfo  Show button control status\n");
     kprintf("  btndemo  Draw the button demo layout\n");
@@ -385,6 +391,17 @@ static void shell_execute(const char *line) {
     } else if (strcmp(line, "wmdemo") == 0) {
         wm_demo_layout();
         kprintf("window manager demo layout drawn\n");
+    } else if (strcmp(line, "meninfo") == 0) {
+        menu_stats_t stats;
+        menu_get_stats(&stats);
+        kprintf("menus ready: %d\n", (int32_t) menu_ready());
+        kprintf("menus: %d active_menu: %d next_id: %d\n",
+                (int32_t) stats.menu_count,
+                (int32_t) stats.active_menu_id,
+                (int32_t) stats.next_menu_id);
+    } else if (strcmp(line, "mendemo") == 0) {
+        menu_demo_layout();
+        kprintf("menu demo layout drawn\n");
     } else if (strcmp(line, "mouse") == 0) {
         mouse_state_t state;
         mouse_get_state(&state);
