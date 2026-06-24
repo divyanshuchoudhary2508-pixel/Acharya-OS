@@ -4,7 +4,17 @@ AcharyaOS is a hobby operating system built from scratch for x86_64.
 It is written primarily in C with a small amount of x86_64 assembly, and it
 uses a simple Make-based build flow.
 
-## What’s in the repo
+## Build Requirements
+
+- `x86_64-elf-gcc`
+- `x86_64-elf-ld`
+- `grub-mkrescue`
+- `qemu-system-x86_64`
+
+The kernel build is intended for a real x86_64 cross-compiler. Native
+32-bit MinGW GCC is not suitable for building the kernel.
+
+## What is in the repo
 
 - bootloader and 64-bit kernel bring-up
 - text output, keyboard input, and shell
@@ -39,6 +49,9 @@ The repository is organized around the local Makefile in this tree.
 ```bash
 make
 ```
+
+If the cross-toolchain is missing, the build stops early and prints the
+commands that need to be installed.
 
 ## Status
 
