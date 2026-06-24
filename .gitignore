@@ -1,0 +1,8 @@
+# AcharyaOS - ignore build artifacts, keep only source under version control
+build/
+*.o
+*.bin
+*.iso
+*.log
+*.ppm
+*.sock
