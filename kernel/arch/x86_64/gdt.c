@@ -1,9 +1,10 @@
 /*
  * AcharyaOS - gdt.c
  * ------------------
- * Builds a permanent 5-entry GDT (null, kernel code, kernel data, user
- * code, user data) as a real C struct array, then asks gdt_flush() (in
- * gdt.S) to load it via `lgdt` and reload the segment registers.
+ * Builds a permanent GDT (null, kernel code, kernel data, user code,
+ * user data, and a TSS descriptor) as a real C struct array, then asks
+ * gdt_flush() (in gdt.S) to load it via `lgdt` and reload the segment
+ * registers.
  *
  * We include user-mode (ring 3) segments NOW, even though nothing uses
  * them yet, because:
@@ -42,6 +43,30 @@ typedef struct PACKED {
     uint64_t base;
 } gdt_pointer_t;
 
+typedef struct PACKED {
+    gdt_entry_t low;
+    uint32_t base_upper;
+    uint32_t reserved;
+} tss_descriptor_t;
+
+typedef struct PACKED {
+    uint32_t reserved0;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
+    uint64_t reserved1;
+    uint64_t ist1;
+    uint64_t ist2;
+    uint64_t ist3;
+    uint64_t ist4;
+    uint64_t ist5;
+    uint64_t ist6;
+    uint64_t ist7;
+    uint64_t reserved2;
+    uint16_t reserved3;
+    uint16_t iomap_base;
+} tss_t;
+
 /* Segment selector indices - other subsystems (syscalls, user processes)
    will reference these by name rather than hardcoding "0x08" etc. */
 enum {
@@ -50,11 +75,15 @@ enum {
     GDT_SEGMENT_KERNEL_DATA = 2,
     GDT_SEGMENT_USER_CODE   = 3,  /* unused until User-Space Programs feature */
     GDT_SEGMENT_USER_DATA   = 4,  /* unused until User-Space Programs feature */
-    GDT_SEGMENT_COUNT       = 5
+    GDT_SEGMENT_TSS_LOW     = 5,
+    GDT_SEGMENT_TSS_HIGH    = 6,
+    GDT_SEGMENT_COUNT       = 7
 };
 
 static gdt_entry_t   gdt_entries[GDT_SEGMENT_COUNT];
 static gdt_pointer_t gdt_pointer;
+static tss_t tss __attribute__((aligned(16)));
+static uint8_t tss_stack[8192] __attribute__((aligned(16)));
 
 /* Implemented in gdt_flush.S - actually executes `lgdt` and reloads CS/SS/etc.
    This MUST be assembly: there is no way to express "reload the CS
@@ -76,6 +105,19 @@ static void gdt_set_entry(int index, uint32_t base, uint32_t limit,
     gdt_entries[index].limit_low   = (uint16_t)(limit & 0xFFFF);
     gdt_entries[index].granularity = (uint8_t)(((limit >> 16) & 0x0F) | (granularity & 0xF0));
     gdt_entries[index].access      = access;
+}
+
+static void gdt_set_tss_entry(int index, uint64_t base, uint32_t limit) {
+    tss_descriptor_t *desc = (tss_descriptor_t *) &gdt_entries[index];
+
+    desc->low.limit_low   = (uint16_t)(limit & 0xFFFF);
+    desc->low.base_low    = (uint16_t)(base & 0xFFFF);
+    desc->low.base_mid    = (uint8_t)((base >> 16) & 0xFF);
+    desc->low.access      = 0x89;
+    desc->low.granularity = (uint8_t)((limit >> 16) & 0x0F);
+    desc->low.base_high   = (uint8_t)((base >> 24) & 0xFF);
+    desc->base_upper      = (uint32_t)((base >> 32) & 0xFFFFFFFFu);
+    desc->reserved        = 0;
 }
 
 void gdt_init(void) {
@@ -106,8 +148,14 @@ void gdt_init(void) {
        0xF2 = Present(1) DPL=11 S=1 Type=0010(read,write) */
     gdt_set_entry(GDT_SEGMENT_USER_DATA, 0, 0xFFFFF, 0xF2, 0xCF);
 
+    memset(&tss, 0, sizeof(tss));
+    tss.rsp0 = (uint64_t) (tss_stack + sizeof(tss_stack));
+    tss.iomap_base = (uint16_t) sizeof(tss);
+    gdt_set_tss_entry(GDT_SEGMENT_TSS_LOW, (uint64_t) &tss, (uint32_t)(sizeof(tss) - 1));
+
     gdt_pointer.limit = (uint16_t)(sizeof(gdt_entries) - 1);
     gdt_pointer.base  = (uint64_t) &gdt_entries;
 
     gdt_flush((uint64_t) &gdt_pointer);
+    gdt_load_tss();
 }

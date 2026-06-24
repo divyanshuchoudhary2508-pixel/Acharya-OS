@@ -31,5 +31,6 @@
 #define ACHARYAOS_GDT_H
 
 void gdt_init(void);
+void gdt_load_tss(void);
 
 #endif /* ACHARYAOS_GDT_H */

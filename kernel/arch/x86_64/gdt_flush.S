@@ -45,3 +45,10 @@ gdt_flush:
 
 .gdt_flush_reload_cs:
     ret
+
+.global gdt_load_tss
+.type gdt_load_tss, @function
+gdt_load_tss:
+    mov $0x28, %ax
+    ltr %ax
+    ret

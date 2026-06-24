@@ -27,6 +27,7 @@ static volatile int userspace_running = 0;
 
 __attribute__((noreturn))
 static void userspace_enter(uint64_t entry, uint64_t stack_top) {
+    const uint16_t data_selector = USER_RING3_DS;
     __asm__ volatile (
         "movw %[ds], %%ax\n\t"
         "mov %%ax, %%ds\n\t"
@@ -42,8 +43,8 @@ static void userspace_enter(uint64_t entry, uint64_t stack_top) {
         "pushq %[entry]\n\t"
         "iretq\n\t"
         :
-        : [ds] "i" (USER_RING3_DS),
-          [ss] "i" (USER_RING3_DS),
+        : [ds] "m" (data_selector),
+          [ss] "m" (data_selector),
           [cs] "r" ((uint64_t) USER_RING3_CS),
           [stack] "r" (stack_top),
           [entry] "r" (entry)
