@@ -1,6 +1,6 @@
 # AcharyaOS
 
-AcharyaOS is a hobby operating system built from scratch for x86_64.
+AcharyaOS is a hobby  operating system built from scratch for x86_64.
 It is written primarily in C with a small amount of x86_64 assembly, and it
 uses a simple Make-based build flow.
 
@@ -55,5 +55,5 @@ commands that need to be installed.
 
 ## Status
 
-This is an incremental educational OS project. The codebase is intentionally
+This is an over the time incremental educational OS project. The codebase is intentionally
 small, modular, and documented feature by feature.
