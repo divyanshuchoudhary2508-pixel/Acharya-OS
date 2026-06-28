@@ -32,6 +32,9 @@
 #include "framebuffer.h"
 #include "window.h"
 #include "menu.h"
+#include "icons.h"
+#include "desktop.h"
+#include "settings.h"
 #include "mouse.h"
 #include "button.h"
 
@@ -204,6 +207,13 @@ static void shell_cmd_help(void) {
     kprintf("  wmdemo   Draw the window manager demo layout\n");
     kprintf("  meninfo  Show menu system status\n");
     kprintf("  mendemo  Draw the menu demo layout\n");
+    kprintf("  dskinfo  Show desktop status\n");
+    kprintf("  dskdemo  Draw the desktop demo layout\n");
+    kprintf("  iconinfo Show icon subsystem status\n");
+    kprintf("  icondemo Draw the icon demo layout\n");
+    kprintf("  settings Open the settings window\n");
+    kprintf("  settinfo Show settings app status\n");
+    kprintf("  settdemo Draw the settings demo layout\n");
     kprintf("  mouse    Show mouse driver status\n");
     kprintf("  btninfo  Show button control status\n");
     kprintf("  btndemo  Draw the button demo layout\n");
@@ -402,6 +412,43 @@ static void shell_execute(const char *line) {
     } else if (strcmp(line, "mendemo") == 0) {
         menu_demo_layout();
         kprintf("menu demo layout drawn\n");
+    } else if (strcmp(line, "dskinfo") == 0) {
+        desktop_stats_t stats;
+        desktop_get_stats(&stats);
+        kprintf("desktop ready: %d\n", (int32_t) desktop_ready());
+        kprintf("icons: %d selected: %d next_id: %d\n",
+                (int32_t) stats.icon_count,
+                (int32_t) stats.selected_icon_id,
+                (int32_t) stats.next_icon_id);
+        kprintf("taskbar height: %d\n", (int32_t) stats.taskbar_height);
+    } else if (strcmp(line, "dskdemo") == 0) {
+        desktop_render();
+        kprintf("desktop demo rendered\n");
+    } else if (strcmp(line, "iconinfo") == 0) {
+        icon_stats_t stats;
+        icons_get_stats(&stats);
+        kprintf("icons ready: %d\n", (int32_t) icons_ready());
+        kprintf("icons: %d selected: %d next_id: %d\n",
+                (int32_t) stats.icon_count,
+                (int32_t) stats.selected_icon_id,
+                (int32_t) stats.next_icon_id);
+    } else if (strcmp(line, "icondemo") == 0) {
+        icons_render();
+        kprintf("icons rendered\n");
+    } else if (strcmp(line, "settings") == 0) {
+        settings_render();
+        kprintf("settings window rendered\n");
+    } else if (strcmp(line, "settinfo") == 0) {
+        settings_stats_t stats;
+        settings_get_stats(&stats);
+        kprintf("settings ready: %d\n", (int32_t) settings_ready());
+        kprintf("settings panels: %d active: %d renders: %d\n",
+                (int32_t) stats.panel_count,
+                (int32_t) stats.active_panel,
+                (int32_t) stats.render_count);
+    } else if (strcmp(line, "settdemo") == 0) {
+        settings_render();
+        kprintf("settings demo rendered\n");
     } else if (strcmp(line, "mouse") == 0) {
         mouse_state_t state;
         mouse_get_state(&state);
@@ -998,6 +1045,18 @@ static void shell_execute(const char *line) {
         strcmp(history_entry, "history") != 0 && strcmp(history_entry, "clearhist") != 0) {
         shell_history_add(history_entry);
     }
+}
+
+int shell_run_command(const char *line) {
+    if (!line) {
+        return -1;
+    }
+    line = skip_spaces(line);
+    if (*line == '\0') {
+        return -1;
+    }
+    shell_execute(line);
+    return 0;
 }
 
 void shell_run(void) {

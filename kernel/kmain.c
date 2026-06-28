@@ -56,6 +56,8 @@
 #include "framebuffer.h"
 #include "window.h"
 #include "menu.h"
+#include "desktop.h"
+#include "settings.h"
 #include "mouse.h"
 #include "button.h"
 #include "kstring.h"
@@ -202,6 +204,18 @@ void kmain(uint64_t multiboot_info_ptr) {
     log_write(LOG_INFO, "Starting menu control layer");
     kprintf("[init] Starting menu control layer... ");
     menu_init();
+    kprintf("done.\n");
+
+    log_write(LOG_INFO, "Starting desktop environment");
+    kprintf("[init] Starting desktop environment... ");
+    desktop_init();
+    desktop_add_default_icons();
+    desktop_render();
+    kprintf("done.\n");
+
+    log_write(LOG_INFO, "Starting settings application");
+    kprintf("[init] Starting settings application... ");
+    settings_init();
     kprintf("done.\n");
 
     log_write(LOG_INFO, "Starting PIT timer at 100 Hz");

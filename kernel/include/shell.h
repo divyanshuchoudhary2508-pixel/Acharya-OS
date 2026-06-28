@@ -14,4 +14,8 @@
 
 void shell_run(void) NORETURN;
 
+/* Execute a single shell command line from another subsystem. Returns 0 on
+   success and -1 if the input was empty or could not be handled. */
+int shell_run_command(const char *line);
+
 #endif /* ACHARYAOS_SHELL_H */
