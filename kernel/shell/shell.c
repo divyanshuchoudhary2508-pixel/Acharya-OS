@@ -36,6 +36,7 @@
 #include "desktop.h"
 #include "settings.h"
 #include "files.h"
+#include "eth.h"
 #include "mouse.h"
 #include "button.h"
 
@@ -218,6 +219,7 @@ static void shell_cmd_help(void) {
     kprintf("  files    Open the graphical file explorer\n");
     kprintf("  fileinfo Show file explorer status\n");
     kprintf("  filedemo Render the file explorer view\n");
+    kprintf("  ethinfo  Show ethernet status\n");
     kprintf("  mouse    Show mouse driver status\n");
     kprintf("  btninfo  Show button control status\n");
     kprintf("  btndemo  Draw the button demo layout\n");
@@ -467,6 +469,18 @@ static void shell_execute(const char *line) {
     } else if (strcmp(line, "filedemo") == 0) {
         files_render();
         kprintf("file explorer demo rendered\n");
+    } else if (strcmp(line, "ethinfo") == 0) {
+        eth_stats_t stats;
+        eth_get_stats(&stats);
+        kprintf("ethernet ready: %d\n", (int32_t) eth_ready());
+        kprintf("mac: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                stats.mac[0], stats.mac[1], stats.mac[2],
+                stats.mac[3], stats.mac[4], stats.mac[5]);
+        kprintf("tx: %d rx: %d dropped: %d mtu: %d\n",
+                (int32_t) stats.tx_frames,
+                (int32_t) stats.rx_frames,
+                (int32_t) stats.dropped_frames,
+                (int32_t) stats.mtu);
     } else if (strcmp(line, "mouse") == 0) {
         mouse_state_t state;
         mouse_get_state(&state);

@@ -59,6 +59,7 @@
 #include "desktop.h"
 #include "settings.h"
 #include "files.h"
+#include "eth.h"
 #include "mouse.h"
 #include "button.h"
 #include "kstring.h"
@@ -222,6 +223,11 @@ void kmain(uint64_t multiboot_info_ptr) {
     log_write(LOG_INFO, "Starting graphical file explorer");
     kprintf("[init] Starting graphical file explorer... ");
     files_init();
+    kprintf("done.\n");
+
+    log_write(LOG_INFO, "Starting Ethernet support");
+    kprintf("[init] Starting Ethernet support... ");
+    eth_init();
     kprintf("done.\n");
 
     log_write(LOG_INFO, "Starting PIT timer at 100 Hz");
