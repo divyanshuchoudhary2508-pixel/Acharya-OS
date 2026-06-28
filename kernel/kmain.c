@@ -60,6 +60,10 @@
 #include "settings.h"
 #include "files.h"
 #include "eth.h"
+#include "arp.h"
+#include "ipv4.h"
+#include "icmp.h"
+#include "udp.h"
 #include "mouse.h"
 #include "button.h"
 #include "kstring.h"
@@ -228,6 +232,26 @@ void kmain(uint64_t multiboot_info_ptr) {
     log_write(LOG_INFO, "Starting Ethernet support");
     kprintf("[init] Starting Ethernet support... ");
     eth_init();
+    kprintf("done.\n");
+
+    log_write(LOG_INFO, "Starting ARP support");
+    kprintf("[init] Starting ARP support... ");
+    arp_init();
+    kprintf("done.\n");
+
+    log_write(LOG_INFO, "Starting IPv4 support");
+    kprintf("[init] Starting IPv4 support... ");
+    ipv4_init();
+    kprintf("done.\n");
+
+    log_write(LOG_INFO, "Starting ICMP support");
+    kprintf("[init] Starting ICMP support... ");
+    icmp_init();
+    kprintf("done.\n");
+
+    log_write(LOG_INFO, "Starting UDP support");
+    kprintf("[init] Starting UDP support... ");
+    udp_init();
     kprintf("done.\n");
 
     log_write(LOG_INFO, "Starting PIT timer at 100 Hz");

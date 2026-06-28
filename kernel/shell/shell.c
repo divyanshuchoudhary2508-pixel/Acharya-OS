@@ -37,6 +37,10 @@
 #include "settings.h"
 #include "files.h"
 #include "eth.h"
+#include "arp.h"
+#include "ipv4.h"
+#include "icmp.h"
+#include "udp.h"
 #include "mouse.h"
 #include "button.h"
 
@@ -220,6 +224,10 @@ static void shell_cmd_help(void) {
     kprintf("  fileinfo Show file explorer status\n");
     kprintf("  filedemo Render the file explorer view\n");
     kprintf("  ethinfo  Show ethernet status\n");
+    kprintf("  arp      Show ARP table\n");
+    kprintf("  route    Show IPv4 route table\n");
+    kprintf("  ping     Send ICMP echo requests\n");
+    kprintf("  udpinfo  Show UDP status\n");
     kprintf("  mouse    Show mouse driver status\n");
     kprintf("  btninfo  Show button control status\n");
     kprintf("  btndemo  Draw the button demo layout\n");
@@ -481,6 +489,47 @@ static void shell_execute(const char *line) {
                 (int32_t) stats.rx_frames,
                 (int32_t) stats.dropped_frames,
                 (int32_t) stats.mtu);
+    } else if (strcmp(line, "arp") == 0) {
+        arp_print_table();
+    } else if (strcmp(line, "route") == 0) {
+        ipv4_route_print();
+    } else if (starts_with_word(line, "ping")) {
+        char *argv[4];
+        char buffer[SHELL_LINE_MAX];
+        size_t i = 0;
+        int argc = 0;
+
+        while (line[i] != '\0' && i + 1 < sizeof(buffer)) {
+            buffer[i] = line[i];
+            i++;
+        }
+        buffer[i] = '\0';
+
+        for (char *p = buffer; *p != '\0' && argc < 4; ) {
+            while (*p == ' ') {
+                p++;
+            }
+            if (*p == '\0') {
+                break;
+            }
+            argv[argc++] = p;
+            while (*p != '\0' && *p != ' ') {
+                p++;
+            }
+            if (*p == ' ') {
+                *p = '\0';
+                p++;
+            }
+        }
+        cmd_ping(argc, argv);
+    } else if (strcmp(line, "udpinfo") == 0) {
+        udp_stats_t stats;
+        udp_get_stats(&stats);
+        kprintf("udp sockets: %d tx: %d rx: %d dropped: %d\n",
+                (int32_t) stats.bound_sockets,
+                (int32_t) stats.tx_packets,
+                (int32_t) stats.rx_packets,
+                (int32_t) stats.dropped_packets);
     } else if (strcmp(line, "mouse") == 0) {
         mouse_state_t state;
         mouse_get_state(&state);
