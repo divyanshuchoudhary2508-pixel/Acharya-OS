@@ -35,6 +35,7 @@
 #include "icons.h"
 #include "desktop.h"
 #include "settings.h"
+#include "files.h"
 #include "mouse.h"
 #include "button.h"
 
@@ -214,6 +215,9 @@ static void shell_cmd_help(void) {
     kprintf("  settings Open the settings window\n");
     kprintf("  settinfo Show settings app status\n");
     kprintf("  settdemo Draw the settings demo layout\n");
+    kprintf("  files    Open the graphical file explorer\n");
+    kprintf("  fileinfo Show file explorer status\n");
+    kprintf("  filedemo Render the file explorer view\n");
     kprintf("  mouse    Show mouse driver status\n");
     kprintf("  btninfo  Show button control status\n");
     kprintf("  btndemo  Draw the button demo layout\n");
@@ -449,6 +453,20 @@ static void shell_execute(const char *line) {
     } else if (strcmp(line, "settdemo") == 0) {
         settings_render();
         kprintf("settings demo rendered\n");
+    } else if (strcmp(line, "files") == 0) {
+        files_render();
+        kprintf("file explorer rendered\n");
+    } else if (strcmp(line, "fileinfo") == 0) {
+        files_stats_t stats;
+        files_get_stats(&stats);
+        kprintf("file explorer ready: %d\n", (int32_t) files_ready());
+        kprintf("files visible: %d selected: %d renders: %d\n",
+                (int32_t) stats.file_count,
+                (int32_t) stats.selected_index,
+                (int32_t) stats.render_count);
+    } else if (strcmp(line, "filedemo") == 0) {
+        files_render();
+        kprintf("file explorer demo rendered\n");
     } else if (strcmp(line, "mouse") == 0) {
         mouse_state_t state;
         mouse_get_state(&state);
