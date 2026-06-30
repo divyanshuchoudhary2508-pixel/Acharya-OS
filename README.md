@@ -11,6 +11,11 @@ uses a simple Make-based build flow.
 - `grub-mkrescue`
 - `qemu-system-x86_64`
 
+The Makefile uses:
+
+- `CC := x86_64-elf-gcc`
+- `LD := x86_64-elf-ld`
+
 The kernel build is intended for a real x86_64 cross-compiler. Native
 32-bit MinGW GCC is not suitable for building the kernel.
 
