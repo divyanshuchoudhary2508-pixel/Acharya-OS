@@ -16,8 +16,8 @@ jobs:
         run: |
           grep -Fq 'x86_64-elf-gcc' README.md
           grep -Fq 'x86_64-elf-ld' README.md
-          grep -Fq 'CC := x86_64-elf-gcc' Makefile
-          grep -Fq 'LD := x86_64-elf-ld' Makefile
+          grep -Eq '^CC[[:space:]]*:= x86_64-elf-gcc$' Makefile
+          grep -Eq '^LD[[:space:]]*:= x86_64-elf-ld$' Makefile
 
       - name: Check text files for whitespace issues
         run: git diff --check
